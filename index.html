@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Sokak Bar 2027 - Sipariş Sistemi</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --text: #f5f5f5;
+      --accent: #f59e0b;
+      --green: #10b981;
+      --red: #ef4444;
+      --border: #333;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 30px;
+      overscroll-behavior-y: contain;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .hidden { display: none !important; }
+
+    /* GÜVENLİK GİRİŞ EKRANI (KİLİT EKRANI) */
+    .auth-screen {
+      position: fixed;
+      inset: 0;
+      background: #0a0a0a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 999;
+    }
+    .auth-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 22px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    }
+    .auth-logo {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--accent);
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+    .auth-sub {
+      font-size: 0.9rem;
+      color: #aaa;
+      margin-bottom: 20px;
+    }
+    .auth-input {
+      width: 100%;
+      height: 48px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #121212;
+      color: #fff;
+      font-size: 16px;
+      text-align: center;
+      margin-bottom: 12px;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .auth-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .auth-btn {
+      width: 100%;
+      height: 48px;
+      background: var(--accent);
+      color: #000;
+      font-weight: 800;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .auth-btn:active { transform: scale(0.98); }
+    .auth-error {
+      color: var(--red);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+
+    /* ÜST MENÜ */
+    header {
+      background: #000;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      gap: 8px;
+    }
+    .logo { font-size: 1.1rem; font-weight: 800; color: var(--accent); letter-spacing: 0.5px; white-space: nowrap; }
+    .mode-switch { display: flex; gap: 6px; align-items: center; }
+    .mode-switch button {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 11px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+    .mode-switch button.active {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+    .logout-btn {
+      background: #2a1515 !important;
+      border-color: #552222 !important;
+      color: #fca5a5 !important;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 12px; }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+      background: #1a1a1a;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .status-legend { display: flex; gap: 12px; color: #ccc; align-items: center; flex-wrap: wrap; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
+    .conn-badge { font-size: 0.78rem; padding: 4px 8px; border-radius: 6px; background: #333; color: #fcd34d; }
+
+    /* 50 Masa Izgarası */
+    .tables-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+      gap: 8px;
+    }
+    .table-btn {
+      background: var(--card);
+      border: 2px solid var(--green);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 14px 4px;
+      text-align: center;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.08s;
+    }
+    .table-btn:active { transform: scale(0.94); }
+    .table-btn.busy {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: var(--red);
+      color: #fca5a5;
+    }
+    .table-btn small { display: block; font-size: 0.68rem; font-weight: 500; margin-top: 4px; opacity: 0.85; }
+
+    /* Sipariş Modalı - Sabit Boyutlu */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 8px;
+      z-index: 100;
+    }
+    .modal-content {
+      background: var(--card);
+      width: 100%;
+      max-width: 520px;
+      height: 90vh;
+      height: 90dvh;
+      max-height: 760px;
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+    .modal-header h2 { font-size: 1.2rem; }
+    .close-btn { background: none; border: none; color: #aaa; font-size: 1.6rem; cursor: pointer; padding: 0 8px; line-height: 1; }
+
+    .search-input {
+      width: 100%;
+      height: 42px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #121212;
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .cat-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      height: 46px;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    .cat-tabs::-webkit-scrollbar { display: none; }
+    .cat-tab {
+      background: #2a2a2a;
+      color: #ddd;
+      border: 1px solid #3a3a3a;
+      height: 36px;
+      padding: 0 15px;
+      border-radius: 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cat-tab.active {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+
+    .menu-scroll {
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+      padding-right: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .category-title {
+      color: var(--accent);
+      font-size: 0.88rem;
+      margin: 12px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 800;
+    }
+    .menu-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #2a2a2a;
+      gap: 10px;
+    }
+    .item-info { flex: 1; }
+    .item-name { font-weight: 700; font-size: 0.98rem; color: #fff; }
+    .item-desc { font-size: 0.78rem; color: #9ca3af; margin-top: 2px; }
+
+    .qty-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .qty-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      border: none;
+      background: #333;
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qty-btn:active { transform: scale(0.92); }
+    .qty-btn.plus { background: var(--accent); color: #000; }
+    .qty-val { font-weight: 700; min-width: 24px; text-align: center; font-size: 1.05rem; }
+
+    .cart-preview {
+      background: #141414;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-top: 8px;
+      max-height: 80px;
+      overflow-y: auto;
+      font-size: 0.82rem;
+      flex-shrink: 0;
+    }
+    .cart-preview-title { color: var(--accent); font-weight: 700; margin-bottom: 4px; font-size: 0.78rem; }
+    .cart-chip {
+      display: inline-block;
+      background: #262626;
+      border: 1px solid #444;
+      padding: 4px 8px;
+      border-radius: 6px;
+      margin: 2px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cart-chip:active { background: #3a1a1a; border-color: var(--red); }
+
+    .order-note {
+      width: 100%;
+      height: 42px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #121212;
+      color: #fff;
+      font-size: 16px;
+      flex-shrink: 0;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .submit-btn {
+      width: 100%;
+      height: 48px;
+      margin-top: 8px;
+      background: var(--green);
+      color: #000;
+      font-weight: 800;
+      font-size: 1.05rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .submit-btn:active { transform: scale(0.98); }
+
+    /* Bar Ekranı Kartları */
+    .bar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    @keyframes flashNew {
+      0% { transform: scale(1.02); box-shadow: 0 0 25px var(--accent); }
+      100% { transform: scale(1); box-shadow: none; }
+    }
+    .order-card {
+      background: var(--card);
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      animation: flashNew 0.5s ease-out;
+    }
+    .order-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .order-table-title { font-size: 1.45rem; font-weight: 900; color: var(--accent); }
+    .order-time { font-size: 0.85rem; color: #aaa; }
+    .order-list { list-style: none; margin-bottom: 14px; }
+    .order-list li {
+      font-size: 1.08rem;
+      font-weight: 700;
+      padding: 7px 0;
+      border-bottom: 1px dashed #333;
+    }
+    .bar-recipe-hint {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+    .order-note-box {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fcd34d;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+      word-break: break-word;
+    }
+    .ready-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--green);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .ready-btn:active { transform: scale(0.97); }
+    .empty-bar {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+      font-size: 1.15rem;
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+    }
+
+    @media (min-width: 768px) {
+      .tables-grid {
+        grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+        gap: 12px;
+      }
+      .table-btn {
+        padding: 20px 8px;
+        font-size: 1.1rem;
+      }
+      .bar-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. GÜVENLİK KİLİT EKRANI -->
+  <div id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">🍺 SOKAK 2026</div>
+      <div class="auth-sub">Sipariş sistemine erişmek için personel güvenlik kodunu girin:</div>
+      <input type="password" id="pinInput" class="auth-input" placeholder="Güvenlik Kodu..." onkeydown="if(event.key==='Enter') verifyPin()" />
+      <button class="auth-btn" onclick="verifyPin()">🔓 GİRİŞ YAP</button>
+      <div id="authError" class="auth-error hidden">❌ Hatalı güvenlik kodu! Giriş reddedildi.</div>
+    </div>
+  </div>
+
+  <!-- 2. ANA UYGULAMA EKRANI -->
+  <div id="appContent" class="hidden">
+    <header>
+      <div class="logo">🍺 SOKAK 2026</div>
+      <div class="mode-switch">
+        <button id="btnWaiterMode" class="active" onclick="switchMode('waiter')">📱 Garson</button>
+        <button id="btnBarMode" onclick="switchMode('bar')">🖥️ Bar (<span id="barCount">0</span>)</button>
+        <button class="logout-btn" onclick="logoutApp()" title="Sistemi Kilitle">🔒</button>
+      </div>
+    </header>
+
+    <!-- GARSON EKRANI -->
+    <div id="waiterView" class="container">
+      <div class="status-bar">
+        <div class="status-legend">
+          <span><span class="dot" style="background: var(--green);"></span>Boş</span>
+          <span><span class="dot" style="background: var(--red);"></span>Barda Hazırlanıyor</span>
+        </div>
+        <div id="connStatus" class="conn-badge">⚡ Bağlanıyor...</div>
+      </div>
+      <div id="tablesGrid" class="tables-grid"></div>
+    </div>
+
+    <!-- BAR EKRANI (Test et butonu kaldırıldı, yeni siparişte zil otomatik çalar) -->
+    <div id="barView" class="container hidden">
+      <div id="barOrdersGrid" class="bar-grid"></div>
+      <div id="emptyBarMsg" class="empty-bar">Şu an bekleyen sipariş yok. 🍻</div>
+    </div>
+
+    <!-- SİPARİŞ GİRİŞ MODALI -->
+    <div id="orderModal" class="modal hidden" onclick="if(event.target===this) closeModal()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTableTitle">Masa 1</h2>
+          <button class="close-btn" onclick="closeModal()">✕</button>
+        </div>
+
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 İçecek ara (Miller, Devrim, Ex Aşkım)..." oninput="renderMenuItems()" />
+
+        <div id="categoryTabs" class="cat-tabs"></div>
+
+        <div id="menuContainer" class="menu-scroll"></div>
+
+        <div id="cartPreview" class="cart-preview hidden"></div>
+
+        <input type="text" id="orderNote" class="order-note" placeholder="Sipariş notu (Örn: Miller Meksika tekilalı)..." />
+        <button class="submit-btn" onclick="sendOrderToBar()">🚀 BARA GÖNDER</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Kütüphaneleri -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <script>
+    const ENC_DB = [12,17,2,2,26,87,95,78,24,93,91,83,92,17,14,25,76,15,1,3,23,7,5,25,93,19,31,86,82,28,81,26,29,14,3,10,23,0,31,29,71,14,31,12,68];
+    const PIN_HASH = 15719;
+
+    const MENU = {
+      "Biralar": [
+        { name: "Efes Özel" },
+        { name: "Efes Malt" },
+        { name: "Bomonti" },
+        { name: "Miller" },
+        { name: "Amsterdam" },
+        { name: "Becks" },
+        { name: "Bud" }
+      ],
+      "Kokteyller": [
+        { name: "Girls Night", desc: "Votka + Nar + Greyfurt" },
+        { name: "High Honor", desc: "Votka + Ananas + Çilek" },
+        { name: "H. Yusuf Son", desc: "Tuz + Votka + Greyfurt + Portakal" },
+        { name: "Satisfactory", desc: "Votka + Vişne" },
+        { name: "Unsatisfactory", desc: "Votka + Enerji" },
+        { name: "M.s Regular Class", desc: "Votka + Limon + Nar" },
+        { name: "Metu Opay", desc: "Votka + Portakal + Limon + Tonik" },
+        { name: "NA", desc: "Gin + Limon + Greyfurt + Elma + Soda" },
+        { name: "Prep School", desc: "Gin + Limon + Portakal + Ananas + Nar" },
+        { name: "ODTÜ Class", desc: "Gin + Portakal + Limon" },
+        { name: "IT", desc: "Gin + Elma + Limon + Portakal" },
+        { name: "Sais (61)", desc: "Gin + Yeşil Elma + Limon" },
+        { name: "Devrim", desc: "Gin + Limon + Sprite" },
+        { name: "Assignment", desc: "Gin + Tonik" },
+        { name: "Ankara ODTÜ", desc: "Gin + Mango + Ananas + Limon + Sprite" },
+        { name: "Quiz", desc: "Gin + Fanta + Limon" },
+        { name: "Dorm Texas", desc: "Tekila + Portakal + Çilek" },
+        { name: "EPE", desc: "Tekila + Limon + Yeşil Elma" },
+        { name: "CET", desc: "Tekila + Limon + Greyfurt" },
+        { name: "106", desc: "Tekila + Portakal + Nar" },
+        { name: "Syllabus", desc: "Viski + Soda + Limon" },
+        { name: "Midterm", desc: "Viski + Acı + Portakal" },
+        { name: "REG", desc: "Viski + Nar + Portakal" },
+        { name: "Officehours", desc: "Viski + Jager + Fanta" },
+        { name: "Sokak Special XXXL", desc: "Jager + Enerji" },
+        { name: "Non-Tech", desc: "Jager + Portakal + Limon" },
+        { name: "Diploma", desc: "Jager + Portakal + Limon + Elma + Soda" },
+        { name: "UFO", desc: "Jager + Kola" },
+        { name: "Shuttle", desc: "Jager + Süt + Limon + Acı + Ananas" },
+        { name: "Library Special", desc: "Espresso + Votka + Baileys" },
+        { name: "08:40", desc: "Votka + Gin + Limon + Çilek + Karpuz" },
+        { name: "Attendance", desc: "Votka + Gin + Portakal + Greyfurt" },
+        { name: "Probation", desc: "Votka + Gin + Tekila + Limon + Sprite" },
+        { name: "Final", desc: "Votka + Gin + Tekila + Limon + Kola" },
+        { name: "Kalkanlı", desc: "Viski + Gin + Votka + Tekila + Limon + Sprite + Tuz" },
+        { name: "Ercan", desc: "Gin + Votka + Tekila + Mango + Ananas + Nar" },
+        { name: "Apolitik", desc: "Gin + Votka + Limon + Elma + Portakal + Enerji" },
+        { name: "Mezun", desc: "Votka + Ananas + Çilek + Mango + Karpuz" }
+      ],
+      "Shot'lar": [
+        { name: "Ex Aşkım", desc: "Votka + Yeşil Elma + Limon" },
+        { name: "Bambaşka Biri", desc: "Votka + Çilek + Ananas" },
+        { name: "Ara Beni Lütfen", desc: "Gin + Portakal + Sprite" },
+        { name: "Kandırdım", desc: "Gin + Sprite + Limon" },
+        { name: "Mayın Tarlası", desc: "Jager + Portakal + Limon" },
+        { name: "MFÖ", desc: "Tekila + Nar + Çilek" },
+        { name: "Bitmesin", desc: "Votka + Çilek + Karpuz" },
+        { name: "Mesafe", desc: "Tekila + Portakal + Limon" },
+        { name: "Dönsün", desc: "Jager + Mango + Soda" },
+        { name: "Adını Kalbime Yaz", desc: "Gin + Greyfurt + Limon" },
+        { name: "Zalim", desc: "Votka + Tekila + Gin + Limon" },
+        { name: "Ying Yang", desc: "Jager + Süt" },
+        { name: "Unutmak İstiyorum", desc: "Tekila + Votka + Limon" }
+      ],
+      "Şaraplar": [
+        { name: "Kırmızı Şarap" },
+        { name: "Rose Şarap" },
+        { name: "Beyaz Şarap" }
+      ]
+    };
+
+    const RECIPE_LOOKUP = {};
+    for (const cat in MENU) {
+      MENU[cat].forEach(function(item) {
+        if (item.desc) RECIPE_LOOKUP[item.name] = item.desc;
+      });
+    }
+
+    const TOTAL_TABLES = 50;
+    let activeOrders = {};
+    let selectedTable = null;
+    let currentCart = {};
+    let activeCategory = "Biralar";
+    let db = null;
+    let ordersPath = "";
+    let currentMode = "waiter";
+    let isFirstLoad = true;
+    let latestOrderTimestamp = 0;
+    let audioCtx = null;
+
+    // XSS Koruması
+    function escapeHtml(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function initAudioContext() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!audioCtx && AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+        if (audioCtx && audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+      } catch (e) {}
+    }
+    document.addEventListener("click", initAudioContext, { passive: true });
+    document.addEventListener("touchstart", initAudioContext, { passive: true });
+
+    // aksiyonda zili çal
+    function playDingSound() {
+      try {
+        initAudioContext();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(880, now);
+        gain1.gain.setValueAtTime(0.6, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.5);
+
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = "triangle";
+        osc2.frequency.setValueAtTime(659.25, now + 0.18);
+        gain2.gain.setValueAtTime(0.6, now + 0.18);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(now + 0.18);
+        osc2.stop(now + 0.9);
+      } catch (e) {}
+    }
+
+    // Şifre Doğrulamaa
+    function checkAndDecrypt(pin) {
+      if (!pin || pin.length !== 18) return null;
+      let sum = 0;
+      for (let i = 0; i < pin.length; i++) {
+        sum += pin.charCodeAt(i) * (i + 1);
+      }
+      if (sum !== PIN_HASH) return null;
+
+      let url = "";
+      for (let i = 0; i < ENC_DB.length; i++) {
+        url += String.fromCharCode(ENC_DB[i] ^ pin.charCodeAt(i % pin.length));
+      }
+      if (url.indexOf("https://") !== 0) return null;
+      return url;
+    }
+
+    function verifyPin() {
+      const pin = document.getElementById("pinInput").value.trim();
+      const decryptedUrl = checkAndDecrypt(pin);
+
+      if (!decryptedUrl) {
+        document.getElementById("authError").classList.remove("hidden");
+        return;
+      }
+
+      document.getElementById("authError").classList.add("hidden");
+      try { localStorage.setItem("sokak_auth_pin", pin); } catch (e) {}
+      unlockAndStart(pin, decryptedUrl);
+    }
+
+    function logoutApp() {
+      if (!confirm("Cihazı kilitlemek istiyor musunuz?")) return;
+      try { localStorage.removeItem("sokak_auth_pin"); } catch (e) {}
+      location.reload();
+    }
+
+    function unlockAndStart(pin, decryptedUrl) {
+      document.getElementById("authScreen").classList.add("hidden");
+      document.getElementById("appContent").classList.remove("hidden");
+
+      ordersPath = "rooms/" + pin + "/active_orders";
+
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp({ databaseURL: decryptedUrl });
+        }
+        db = firebase.database();
+
+        db.ref(".info/connected").on("value", function(snap) {
+          const statusEl = document.getElementById("connStatus");
+          if (snap.val() === true) {
+            statusEl.innerText = "🟢 Güvenli Bağlantı Aktif";
+            statusEl.style.color = "#10b981";
+          } else {
+            statusEl.innerText = "🟡 Bağlanıyor...";
+            statusEl.style.color = "#fcd34d";
+          }
+        });
+
+        db.ref(ordersPath).on("value", function(snapshot) {
+          const incomingOrders = snapshot.val() || {};
+          let maxTime = 0;
+          const orderValues = Object.values(incomingOrders);
+          for (let i = 0; i < orderValues.length; i++) {
+            if (orderValues[i] && orderValues[i].timestamp > maxTime) {
+              maxTime = orderValues[i].timestamp;
+            }
+          }
+
+          // aksiyonlarda vs zili çal
+          if (!isFirstLoad && maxTime > latestOrderTimestamp) {
+            playDingSound();
+          }
+
+          latestOrderTimestamp = maxTime;
+          isFirstLoad = false;
+          activeOrders = incomingOrders;
+
+          renderTables();
+          renderBarOrders();
+        });
+      } catch (err) {
+        console.error("Bağlantı hatası:", err);
+      }
+
+      renderCategoryTabs();
+      renderTables();
+      renderBarOrders();
+    }
+
+    async function keepScreenAwake() {
+      if ("wakeLock" in navigator && currentMode === "bar") {
+        try { await navigator.wakeLock.request("screen"); } catch (err) {}
+      }
+    }
+
+    document.addEventListener("visibilitychange", function() {
+      if (document.visibilityState === "visible" && currentMode === "bar") {
+        keepScreenAwake();
+      }
+    });
+
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById("waiterView").classList.toggle("hidden", mode !== "waiter");
+      document.getElementById("barView").classList.toggle("hidden", mode !== "bar");
+      document.getElementById("btnWaiterMode").classList.toggle("active", mode === "waiter");
+      document.getElementById("btnBarMode").classList.toggle("active", mode === "bar");
+
+      if (mode === "bar") {
+        initAudioContext();
+        keepScreenAwake();
+      }
+    }
+
+    function renderTables() {
+      const grid = document.getElementById("tablesGrid");
+      grid.innerHTML = "";
+      for (let i = 1; i <= TOTAL_TABLES; i++) {
+        const isBusy = Boolean(activeOrders["table_" + i]);
+        const btn = document.createElement("button");
+        btn.className = "table-btn" + (isBusy ? " busy" : "");
+        btn.innerHTML = "MASA " + i + "<small>" + (isBusy ? "Barda" : "Boş") + "</small>";
+        btn.onclick = function() { openTableModal(i, isBusy); };
+        grid.appendChild(btn);
+      }
+    }
+
+    function renderCategoryTabs() {
+      const tabsContainer = document.getElementById("categoryTabs");
+      tabsContainer.innerHTML = "";
+      const categories = Object.keys(MENU).concat(["Tümü"]);
+
+      categories.forEach(function(cat) {
+        const btn = document.createElement("button");
+        btn.className = "cat-tab" + (activeCategory === cat ? " active" : "");
+        btn.innerText = cat;
+        btn.onclick = function() {
+          activeCategory = cat;
+          renderCategoryTabs();
+          renderMenuItems();
+          document.getElementById("menuContainer").scrollTop = 0;
+        };
+        tabsContainer.appendChild(btn);
+      });
+    }
+
+    function openTableModal(tableNo, isBusy) {
+      selectedTable = tableNo;
+      currentCart = {};
+      let existingNote = "";
+
+      if (isBusy && activeOrders["table_" + tableNo]) {
+        const existingOrder = activeOrders["table_" + tableNo];
+        if (existingOrder.items && Array.isArray(existingOrder.items)) {
+          existingOrder.items.forEach(function(item) {
+            currentCart[item.name] = item.qty;
+          });
+        }
+        existingNote = existingOrder.note || "";
+      }
+
+      activeCategory = "Biralar";
+      document.getElementById("modalTableTitle").innerText = "Masa " + tableNo + (isBusy ? " (Siparişi Düzenle)" : " - Sipariş Gir");
+      document.getElementById("orderNote").value = existingNote;
+      document.getElementById("searchInput").value = "";
+      renderCategoryTabs();
+      renderMenuItems();
+      renderCartPreview();
+      document.getElementById("orderModal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      document.getElementById("orderModal").classList.add("hidden");
+    }
+
+    function renderMenuItems() {
+      const container = document.getElementById("menuContainer");
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      container.innerHTML = "";
+
+      for (const category in MENU) {
+        if (query === "" && activeCategory !== "Tümü" && activeCategory !== category) {
+          continue;
+        }
+
+        const items = MENU[category].filter(function(item) {
+          if (query === "") return true;
+          return item.name.toLowerCase().indexOf(query) !== -1 ||
+                 (item.desc && item.desc.toLowerCase().indexOf(query) !== -1);
+        });
+
+        if (items.length === 0) continue;
+
+        const catTitle = document.createElement("div");
+        catTitle.className = "category-title";
+        catTitle.innerText = category;
+        container.appendChild(catTitle);
+
+        items.forEach(function(item) {
+          const qty = currentCart[item.name] || 0;
+          const row = document.createElement("div");
+          row.className = "menu-item";
+
+          const infoDiv = document.createElement("div");
+          infoDiv.className = "item-info";
+          infoDiv.innerHTML =
+            '<div class="item-name">' + escapeHtml(item.name) + '</div>' +
+            (item.desc ? '<div class="item-desc">' + escapeHtml(item.desc) + '</div>' : '');
+
+          const controls = document.createElement("div");
+          controls.className = "qty-controls";
+
+          const minusBtn = document.createElement("button");
+          minusBtn.className = "qty-btn";
+          minusBtn.innerText = "-";
+          minusBtn.onclick = function() { updateQty(item.name, -1); };
+
+          const valSpan = document.createElement("span");
+          valSpan.className = "qty-val";
+          valSpan.innerText = qty;
+
+          const plusBtn = document.createElement("button");
+          plusBtn.className = "qty-btn plus";
+          plusBtn.innerText = "+";
+          plusBtn.onclick = function() { updateQty(item.name, 1); };
+
+          controls.appendChild(minusBtn);
+          controls.appendChild(valSpan);
+          controls.appendChild(plusBtn);
+
+          row.appendChild(infoDiv);
+          row.appendChild(controls);
+          container.appendChild(row);
+        });
+      }
+    }
+
+    function updateQty(itemName, delta) {
+      currentCart[itemName] = Math.max(0, (currentCart[itemName] || 0) + delta);
+      if (currentCart[itemName] === 0) delete currentCart[itemName];
+      renderMenuItems();
+      renderCartPreview();
+    }
+
+    function renderCartPreview() {
+      const preview = document.getElementById("cartPreview");
+      const keys = Object.keys(currentCart);
+      if (keys.length === 0) {
+        preview.classList.add("hidden");
+        preview.innerHTML = "";
+        return;
+      }
+      preview.classList.remove("hidden");
+      preview.innerHTML = '<div class="cart-preview-title">Seçilenler (Azaltmak için üzerine dokunun):</div>';
+
+      keys.forEach(function(k) {
+        const chip = document.createElement("span");
+        chip.className = "cart-chip";
+        chip.innerText = currentCart[k] + "x " + k + " ✕";
+        chip.onclick = function() { updateQty(k, -1); };
+        preview.appendChild(chip);
+      });
+    }
+
+    function sendOrderToBar() {
+      const itemsList = [];
+      for (const name in currentCart) {
+        itemsList.push({ name: name, qty: currentCart[name] });
+      }
+
+      if (itemsList.length === 0) {
+        alert("Lütfen en az bir içecek seçin!");
+        return;
+      }
+
+      if (!db || !ordersPath) {
+        alert("Veritabanı bağlantısı henüz hazır değil, lütfen internetinizi kontrol edin.");
+        return;
+      }
+
+      const note = document.getElementById("orderNote").value.trim();
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+
+      const orderData = {
+        tableNo: selectedTable,
+        items: itemsList,
+        note: note,
+        time: timeStr,
+        timestamp: Date.now()
+      };
+
+      db.ref(ordersPath + "/table_" + selectedTable).set(orderData);
+      closeModal();
+    }
+
+    function renderBarOrders() {
+      const barGrid = document.getElementById("barOrdersGrid");
+      const emptyMsg = document.getElementById("emptyBarMsg");
+      const barCount = document.getElementById("barCount");
+
+      const orderArray = Object.values(activeOrders).sort(function(a, b) {
+        return (a.timestamp || 0) - (b.timestamp || 0);
+      });
+
+      barCount.innerText = orderArray.length;
+      barGrid.innerHTML = "";
+
+      if (orderArray.length === 0) {
+        emptyMsg.classList.remove("hidden");
+        return;
+      }
+      emptyMsg.classList.add("hidden");
+
+      for (let i = 0; i < orderArray.length; i++) {
+        const order = orderArray[i];
+        if (!order || !order.items) continue;
+
+        const card = document.createElement("div");
+        card.className = "order-card";
+
+        let itemsHtml = "";
+        for (let j = 0; j < order.items.length; j++) {
+          const itemName = order.items[j].name;
+          const itemQty = order.items[j].qty;
+          const recipe = RECIPE_LOOKUP[itemName];
+          itemsHtml +=
+            "<li>" +
+              escapeHtml(itemQty) + "x " + escapeHtml(itemName) +
+              (recipe ? '<span class="bar-recipe-hint">(' + escapeHtml(recipe) + ')</span>' : '') +
+            "</li>";
+        }
+
+        const noteHtml = order.note ? '<div class="order-note-box">📝 Not: ' + escapeHtml(order.note) + '</div>' : "";
+
+        card.innerHTML =
+          '<div>' +
+            '<div class="order-card-header">' +
+              '<span class="order-table-title">MASA ' + escapeHtml(order.tableNo) + '</span>' +
+              '<span class="order-time">🕒 ' + escapeHtml(order.time) + '</span>' +
+            '</div>' +
+            '<ul class="order-list">' + itemsHtml + '</ul>' +
+            noteHtml +
+          '</div>' +
+          '<button class="ready-btn" onclick="completeOrder(' + Number(order.tableNo) + ')">' +
+            '✅ HAZIR (MASAYI BOŞALT)' +
+          '</button>';
+
+        barGrid.appendChild(card);
+      }
+    }
+
+    function completeOrder(tableNo) {
+      if (db && ordersPath) {
+        db.ref(ordersPath + "/table_" + tableNo).remove();
+      }
+    }
+
+    (function autoLogin() {
+      try {
+        const savedPin = localStorage.getItem("sokak_auth_pin");
+        if (savedPin) {
+          const decryptedUrl = checkAndDecrypt(savedPin);
+          if (decryptedUrl) {
+            unlockAndStart(savedPin, decryptedUrl);
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>
